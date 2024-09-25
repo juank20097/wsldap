@@ -38,7 +38,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
  * Controlador para gestionar las operaciones relacionadas con los servicios LDAP.
  */
 
-@Tag(name = "LDAP", description = "LDAP API")
+@Tag(name = "LDAP")
 @RestController
 @RequestMapping("/ldap")
 public class LdapControlador {
@@ -55,7 +55,7 @@ public class LdapControlador {
 			@Parameter(name = "usuario", example = "jane", required = true) }, responses = {
 					@ApiResponse(responseCode = "200", description = "Muestra la información en formato JSON", content = @Content(mediaType = "application/json", schema = @Schema(example = "{ \"uid\": \"jane\", \"mail\": \"jane.smith@example.com\", \"dn\": \"uid=jane,ou=users\", \"cn\": \"Jane Smith\", \"sn\": \"Smith\" }"))),
 					@ApiResponse(responseCode = "500", description = "Error de conexión", content = @Content()) })
-	@GetMapping("/buscar/usuario/{usuario}")
+	@GetMapping("/usuario/{usuario}")
 	public Map<String, Object> buscarPorUsuario(@PathVariable("usuario") String usuario) {
 		return ldapServicio.buscarPorUsuario(usuario);
 	}
@@ -66,10 +66,10 @@ public class LdapControlador {
 	 * @return Información sobre el correo buscado.
 	 */
 	@Operation(description = "Este servicio nos devulve la informacion relacionada al correo buscado", parameters = {
-			@Parameter(name = "usuario", example = "jane.smith@example.com", required = true) }, responses = {
+			@Parameter(name = "correo", example = "jane.smith@example.com", required = true) }, responses = {
 					@ApiResponse(responseCode = "200", description = "Muestra la informacion en formato JSON", content = @Content(mediaType = "application/json", schema = @Schema(example = "{ \"uid\": \"jane\", \"mail\": \"jane.smith@example.com\", \"dn\": \"uid=jane,ou=users\", \"cn\": \"Jane Smith\", \"sn\": \"Smith\" }"))),
 					@ApiResponse(responseCode = "500", description = "Error de conexión", content = @Content()) })
-	@GetMapping("/buscar/correo/{correo}")
+	@GetMapping("/email/{correo}")
 	public Map<String, Object> buscarPorCorreo(@PathVariable("correo") String correo) {
 		return ldapServicio.buscarPorCorreo(correo);
 	}
@@ -81,9 +81,9 @@ public class LdapControlador {
 	 * @return Un mensaje indicando el resultado de la operación.
 	 */
 	@Operation(description = "Este servicio nos permite cambiar la contraseña ligada al usuario proporcionado", requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "JSON con el usuario y la nueva contraseña", required = true, content = @Content(mediaType = "application/json", schema = @Schema(example = "{\"usuario\": \"jane\", \"nuevaContrasena\": \"contrsjason2\"}"))), responses = {
-			@ApiResponse(responseCode = "200", description = "OK", content = @Content(mediaType = "application/json", schema = @Schema(example = "{ \"Mensaje\": \"Contraseña ligada al usuario jane ha sido actualizada.\" }"))),
+			@ApiResponse(responseCode = "200", description = "OK", content = @Content(mediaType = "application/json", schema = @Schema(example = "{ \"mensaje\": \"Contraseña ligada al usuario jane ha sido actualizada.\" }"))),
 			@ApiResponse(responseCode = "500", description = "Error de conexión", content = @Content()) })
-	@PostMapping("/cambiar/contrasena/usuario")
+	@PostMapping("/usuario")
 	public Map<String, String> cambiarContrasenaPorUsuario(@RequestBody Map<String, String> datosSolicitud) {
 		String usuario = datosSolicitud.get("usuario");
 		String nuevaContrasena = datosSolicitud.get("nuevaContrasena");
@@ -97,9 +97,9 @@ public class LdapControlador {
 	 * @return Un mensaje indicando el resultado de la operación.
 	 */
 	@Operation(description = "Este servicio nos permite cambiar la contraseña ligada al correo proporcionado", requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "JSON con el correo y la nueva contraseña", required = true, content = @Content(mediaType = "application/json", schema = @Schema(example = "{\"correo\": \"jane.smith@example.com\", \"nuevaContrasena\": \"contrsjason\"}"))), responses = {
-			@ApiResponse(responseCode = "200", description = "OK", content = @Content(mediaType = "application/json", schema = @Schema(example = "{ \"Mensaje\": \"Contraseña ligada al correo jane.smith@example.com ha sido actualizada.\" }"))),
+			@ApiResponse(responseCode = "200", description = "OK", content = @Content(mediaType = "application/json", schema = @Schema(example = "{ \"mensaje\": \"Contraseña ligada al correo jane.smith@example.com ha sido actualizada.\" }"))),
 			@ApiResponse(responseCode = "500", description = "Error de conexión", content = @Content()) })
-	@PostMapping("/cambiar/contrasena/correo")
+	@PostMapping("/email")
 	public Map<String, String> cambiarContrasenaPorCorreo(@RequestBody Map<String, String> datosSolicitud) {
 		String correo = datosSolicitud.get("correo");
 		String nuevaContrasena = datosSolicitud.get("nuevaContrasena");

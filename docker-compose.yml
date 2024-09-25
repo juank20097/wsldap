@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+
+  wsldap:
+    build:
+      context: .  
+    container_name: wsldap
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/air_quality
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+
+  wsladap_test:
+    build:
+      context: .
+      dockerfile: Dockerfile_two
+    container_name: wsladap_test
+    environment:
+    command: mvn test
+
+
+volumes:
+  dbdata:
+    driver: local

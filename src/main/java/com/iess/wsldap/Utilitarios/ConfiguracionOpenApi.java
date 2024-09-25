@@ -45,8 +45,8 @@ public class ConfiguracionOpenApi {
 	public OpenAPI customOpenAPI() {
 		return new OpenAPI()
 				.info(new Info().title(this.nombreApi).version("1.0").description(descripcionApi)
-						.contact(new Contact().name("Development Team").url(equipoDesarrolloUrl)))
-				.externalDocs(new ExternalDocumentation().description("GitHub repository").url("repositorioUrl"));
+						.contact(new Contact().name("Equipo de desarrollo").url(equipoDesarrolloUrl)))
+				.externalDocs(new ExternalDocumentation().description("Repositorio GitHub").url(repositorioUrl));
 	}
 
 }

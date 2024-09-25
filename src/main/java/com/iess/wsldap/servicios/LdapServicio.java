@@ -4,6 +4,11 @@
  */
 package com.iess.wsldap.servicios;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+
 /**
  * Clase que define los servicios REST para LDAP
  * 
@@ -16,9 +21,11 @@ package com.iess.wsldap.servicios;
  */
 
 import java.util.HashMap;
+
 import java.util.Map;
 
 import javax.naming.directory.BasicAttribute;
+
 import javax.naming.directory.DirContext;
 import javax.naming.directory.ModificationItem;
 
@@ -30,6 +37,8 @@ import org.springframework.ldap.query.LdapQueryBuilder;
 import org.springframework.stereotype.Service;
 
 import io.swagger.v3.oas.annotations.Hidden;
+
+
 
 /**
  * Servicio para los usuarios dentro del LDAP.
@@ -66,7 +75,7 @@ public class LdapServicio {
 		} catch (Exception e) {
 			e.printStackTrace();
 			Map<String, Object> error = new HashMap<>();
-			error.put("error", "El usuario " + usuario + " no existe.");
+			error.put("mensaje", "El usuario " + usuario + " no existe.");
 			return error;
 		}
 	}
@@ -96,18 +105,18 @@ public class LdapServicio {
 		} catch (Exception e) {
 			e.printStackTrace();
 			Map<String, Object> error = new HashMap<>();
-			error.put("error", "El usuario con el correo " + correo + " no existe.");
+			error.put("mensaje", "El usuario con el correo " + correo + " no existe.");
 			return error;
 		}
 	}
 
-	 /**
-     * Actualiza la contraseña ligada a un usuario dentro de LDAP.
-     *
-     * @param usuario Usuario al que se le cambiara la contraseña.
-     * @param nuevaContraseña Nueva contraseña para actualizar. 
-     * @return JSON con el resultado de la operación.
-     */
+	/**
+	 * Actualiza la contraseña ligada a un usuario dentro de LDAP.
+	 *
+	 * @param usuario         Usuario al que se le cambiara la contraseña.
+	 * @param nuevaContraseña Nueva contraseña para actualizar.
+	 * @return JSON con el resultado de la operación.
+	 */
 	public Map<String, String> cambiarContrasenaPorUsuario(String usuario, String nuevaContrasena) {
 		Map<String, String> respuesta = new HashMap<>();
 		try {
@@ -120,22 +129,22 @@ public class LdapServicio {
 					new ModificationItem[] { new ModificationItem(DirContext.REPLACE_ATTRIBUTE,
 							new BasicAttribute("userPassword", nuevaContrasena)) });
 
-			respuesta.put("Mensaje", "Contraseña del usuario " + usuario + " ha sido actualizada.");
+			respuesta.put("mensaje", "Contraseña del usuario " + usuario + " ha sido actualizada.");
 			return respuesta;
 		} catch (Exception e) {
 			e.printStackTrace();
-			respuesta.put("Error", "Error al intentar actualizar contraseña:" + e.getMessage());
+			respuesta.put("mensaje", "Error al intentar actualizar contraseña:" + e.getMessage());
 			return respuesta;
 		}
 	}
 
-	 /**
-     * Actualiza la contraseña ligada a un correo dentro de LDAP.
-     *
-     * @param correo Correo al que se le cambiara la contraseña.
-     * @param nuevaContraseña Nueva contraseña para actualizar. 
-     * @return JSON con el resultado de la operación.
-     */
+	/**
+	 * Actualiza la contraseña ligada a un correo dentro de LDAP.
+	 *
+	 * @param correo          Correo al que se le cambiara la contraseña.
+	 * @param nuevaContraseña Nueva contraseña para actualizar.
+	 * @return JSON con el resultado de la operación.
+	 */
 	public Map<String, String> cambiarContrasenaPorCorreo(String correo, String nuevaContrasena) {
 		Map<String, String> respuesta = new HashMap<>();
 		try {
@@ -149,23 +158,23 @@ public class LdapServicio {
 					new ModificationItem[] { new ModificationItem(DirContext.REPLACE_ATTRIBUTE,
 							new BasicAttribute("userPassword", nuevaContrasena)) });
 
-			respuesta.put("Mensaje", "Contraseña ligada al correo " + correo + " ha sido actualizada.");
+			respuesta.put("mensaje", "Contraseña ligada al correo " + correo + " ha sido actualizada.");
 
 			return respuesta;
 		} catch (Exception e) {
 			e.printStackTrace();
-			respuesta.put("Error", "Error al intentar actualizar contraseña:" + e.getMessage());
+			respuesta.put("mensaje", "Error al intentar actualizar contraseña:" + e.getMessage());
 			return respuesta;
 		}
 	}
-	
-	 /**
-     * Obtiene los datos de manera segura de un DN dentro de LDAP.
-     *
-     * @param context Ubicación del DN buscado.
-     * @param atributo Atributo a obtener dato. 
-     * @return Información del atributo buscado.
-     */
+
+	/**
+	 * Obtiene los datos de manera segura de un DN dentro de LDAP.
+	 *
+	 * @param context  Ubicación del DN buscado.
+	 * @param atributo Atributo a obtener dato.
+	 * @return Información del atributo buscado.
+	 */
 	private String obtenerAtributo(DirContextAdapter context, String atributo) {
 		String valorDelAtributo = context.getStringAttribute(atributo);
 		return valorDelAtributo != null ? valorDelAtributo : "Dato no disponible";

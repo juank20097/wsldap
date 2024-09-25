@@ -36,7 +36,7 @@ public class WsldapApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(WsldapApplication.class, args);
 		System.out.println("--------- Documentación SWAGGER -----------");
-		System.out.println("http://localhost:8080/swagger-ui/index.html");
+		System.out.println("http://[ip_servidor]:8080/swagger-ui/index.html");
 		System.out.println("-------------------------------------------");
 	}
 
