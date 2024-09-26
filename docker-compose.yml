@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+
+  ldap:
+    image: osixia/openldap:1.5.0
+    container_name: ldap
+    environment:
+      - LDAP_ORGANISATION=Example Corp
+      - LDAP_DOMAIN=example.com
+      - LDAP_ADMIN_PASSWORD=admin_password
+      - LDAP_TLS=false
+    volumes:
+      - ldap-data:/etc/ldap/slapd.d
+      - ./users.ldif:/etc/ldap/users.ldif
+      - ./init-ldap.sh:/init-ldap.sh
+    ports:
+      - '8085:389'
+
+  wsldap:
+    build:
+      context: .  
+    container_name: wsldap
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_LDAP_URLS=${SPRING_LDAP_URLS}
+      - SPRING_LDAP_BASE=${SPRING_LDAP_BASE}
+      - SPRING_LDAP_USERNAME=${SPRING_LDAP_USERNAME}
+      - SPRING_LDAP_PASSWORD=${SPRING_LDAP_PASSWORD}
+
+  test_wsldap:
+    build:
+      context: .
+      dockerfile: Dockerfile_test
+    container_name: test_wsladap
+    command: mvn test
+
+volumes:
+  dbdata:
+    driver: local
+  ldap-data:

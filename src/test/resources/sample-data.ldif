@@ -1,0 +1,41 @@
+# Base DN (distinguished name)
+dn: dc=example,dc=com
+objectClass: top
+objectClass: domain
+dc: example
+
+# Organización
+dn: o=Example_Organization,dc=example,dc=com
+objectClass: top
+objectClass: organization
+o: Example Organization
+
+# Unidad organizativa (OU)
+dn: ou=People,o=Example_Organization,dc=example,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: People
+
+# Primer usuario
+dn: uid=john.doe,ou=People,o=Example_Organization,dc=example,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: John Doe
+sn: Doe
+uid: john.doe
+mail: john.doe@example.com
+userPassword: 12345
+
+# Segundo usuario
+dn: uid=Jairo.martinez,ou=People,o=Example_Organization,dc=example,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Jairo Martinez
+sn: Martinez
+uid: jairo.martinez
+mail: jairo.martinez@example.com
+userPassword: abc123
