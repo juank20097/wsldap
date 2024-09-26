@@ -1,0 +1,21 @@
+# Organización
+dn: o=Example_Organization,dc=example,dc=com
+objectClass: top
+objectClass: organization
+o: Example Organization
+
+# Unidad organizativa (OU)
+dn: ou=People,o=Example_Organization,dc=example,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: People
+
+# Primer usuario
+dn: uid=jane,ou=People,o=Example_Organization,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Jane Smith
+uid: jane
+sn: Smith
+givenName: Jane
+mail: jane.smith@example.com
+userPassword: password123

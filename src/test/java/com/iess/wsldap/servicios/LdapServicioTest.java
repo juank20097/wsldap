@@ -86,7 +86,7 @@ public class LdapServicioTest {
 		String nuevaContrasena = "nuevaContraseña";
 		
 		Map<String, String> prueba= new HashMap<>();
-		prueba.put("Mensaje", "Contraseña ligada al correo " + correo + " ha sido actualizada.");
+		prueba.put("mensaje", "Contraseña ligada al correo " + correo + " ha sido actualizada.");
 		
 		System.out.println("Ejecutando testCambiarContrasenaPorCorreo...");
 		Map<String, String> resultado = ldapServicio.cambiarContrasenaPorCorreo(correo, nuevaContrasena);
@@ -107,7 +107,7 @@ public class LdapServicioTest {
 		String nuevaContrasena = "nuevaContraseña";
 
 		Map<String, String> prueba= new HashMap<>();
-		prueba.put("Mensaje","Contraseña del usuario " + usuario + " ha sido actualizada.");
+		prueba.put("mensaje","Contraseña del usuario " + usuario + " ha sido actualizada.");
 		
 		System.out.println("Ejecutando testCambiarContrasenaPorUsuario...");
 		Map<String, String> resultado = ldapServicio.cambiarContrasenaPorUsuario(usuario, nuevaContrasena);
