@@ -82,7 +82,7 @@ public class LdapControlador {
 	@Operation(description = "Este servicio devuelve la informacion realacionada al nombre proporcionado", requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "JSON el nombre completo", required = true, content = @Content(mediaType = "application/json", schema = @Schema(example = "{\"nombreCompleto\": \"Pruebas PrestadoresExternos\"}"))), responses = {
 			@ApiResponse(responseCode = "200", description = "Muestra la informacion en formato JSON", content = @Content(mediaType = "application/json", schema = @Schema(example = "{ \"dn\": \"{distinguishedName}\", \"cn\": \"Pruebas PrestadoresExternos\", \"facsimileTelephoneNumber\": \"Dato no disponible\", \"userPrincipalName\": \"Pruebas.pexternos@iess.gob.ec\", \"sAMAccountName\": \"pruebas.pexternos\" , \"physicalDeliveryOfficeName\": \"Dato no obtenido\" , \"department\": \"DNTI\" , \"tittle\": \"Dato no obtenido\" }"))),
 			@ApiResponse(responseCode = "500", description = "Error de conexión", content = @Content()) })
-	@PostMapping("/nombre/completo")
+	@PostMapping("/nombreCompleto")
 	public Map<String, Object> buscarPorNombreCompleto(@RequestBody Map<String, String> datosSolicitud) {
 		String nombreCompleto = datosSolicitud.get("nombreCompleto");
 		return ldapServicio.buscarPorNombreCompleto(nombreCompleto);
@@ -121,19 +121,4 @@ public class LdapControlador {
 		return ldapServicio.cambiarContrasenaPorCorreo(correo, nuevaContrasena);
 	}
 	
-	/**
-	 * Cambia la contraseña ligada a un nombre completo dentro de LDAP.
-	 *
-	 * @param datosSolicitud Nombre completo y nueva contraseñá.
-	 * @return Un mensaje indicando el resultado de la operación.
-	 */
-	@Operation(description = "Este servicio nos permite cambiar la contraseña ligada al usario proporcionado", requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "JSON con el correo y la nueva contraseña", required = true, content = @Content(mediaType = "application/json", schema = @Schema(example = "{\"nombreCompleto\": \"Pruebas PrestadoresExternos\", \"nuevaContrasena\": \"Password123456\"}"))), responses = {
-			@ApiResponse(responseCode = "200", description = "OK", content = @Content(mediaType = "application/json", schema = @Schema(example = "{ \"mensaje\": \"Contraseña ligada a Pruebas PrestadoresExternos ha sido actualizada.\" }"))),
-			@ApiResponse(responseCode = "500", description = "Error de conexión", content = @Content()) })
-	@PostMapping("/nombreCompleto")
-	public Map<String, String> cambiarContrasenaNombreCompleto(@RequestBody Map<String, String> datosSolicitud) {
-		String nombreCompleto = datosSolicitud.get("nombreCompleto");
-		String nuevaContrasena = datosSolicitud.get("nuevaContrasena");
-		return ldapServicio.cambiarContrasenaPorCorreo(nombreCompleto, nuevaContrasena);
-	}
 }

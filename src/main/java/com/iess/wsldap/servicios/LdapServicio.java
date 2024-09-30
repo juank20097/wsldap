@@ -53,7 +53,7 @@ public class LdapServicio {
 	 */
 	public Map<String, Object> buscarPorUsuario(String usuario) {
 		try {
-			return ldapPlantilla.searchForObject(LdapQueryBuilder.query().where("uid").is(usuario),
+			return ldapPlantilla.searchForObject(LdapQueryBuilder.query().where("sAMAccountName").is(usuario),
 					(ContextMapper<Map<String, Object>>) contexto -> {
 						DirContextAdapter context = (DirContextAdapter) contexto;
 
@@ -194,36 +194,6 @@ public class LdapServicio {
 							new BasicAttribute("unicodePwd", nuevaContrasena)) });
 
 			respuesta.put("mensaje", "Contraseña ligada al correo " + correo + " ha sido actualizada.");
-
-			return respuesta;
-		} catch (Exception e) {
-			e.printStackTrace();
-			respuesta.put("mensaje", "Error al intentar actualizar contraseña:" + e.getMessage());
-			return respuesta;
-		}
-	}
-
-	/**
-	 * Actualiza la contraseña ligada a un correo dentro de LDAP.
-	 *
-	 * @param correo          Correo al que se le cambiara la contraseña.
-	 * @param nuevaContraseña Nueva contraseña para actualizar.
-	 * @return JSON con el resultado de la operación.
-	 */
-	public Map<String, String> cambiarContrasenaPorNombreCompleto(String nombreCompleto, String nuevaContrasena) {
-		Map<String, String> respuesta = new HashMap<>();
-		try {
-			String DnUsuario = ldapPlantilla.searchForObject(LdapQueryBuilder.query().where("cn").is(nombreCompleto),
-					(ContextMapper<String>) contexto -> {
-						DirContextAdapter context = (DirContextAdapter) contexto;
-						return context.getDn().toString();
-					});
-
-			ldapPlantilla.modifyAttributes(DnUsuario,
-					new ModificationItem[] { new ModificationItem(DirContext.REPLACE_ATTRIBUTE,
-							new BasicAttribute("unicodePwd", nuevaContrasena)) });
-
-			respuesta.put("mensaje", "Contraseña ligada a " + nombreCompleto + " ha sido actualizada.");
 
 			return respuesta;
 		} catch (Exception e) {
