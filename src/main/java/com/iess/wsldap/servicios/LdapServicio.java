@@ -46,7 +46,7 @@ public class LdapServicio {
 	private LdapTemplate ldapPlantilla;
 
 	/**
-	 * Obtiene la informacion relaacionada a un usuario dentro de LDAP.
+	 * Obtiene la informacion relacionada a un usuario dentro de LDAP.
 	 *
 	 * @param usuario Usuario buscado.
 	 * @return JSON con la información del usuario buscado.
@@ -59,10 +59,13 @@ public class LdapServicio {
 
 						Map<String, Object> datosUsuario = new HashMap<>();
 						datosUsuario.put("dn", context.getDn().toString());
-						datosUsuario.put("cn", obtenerAtributo(context, "cn"));
-						datosUsuario.put("sn", obtenerAtributo(context, "sn"));
-						datosUsuario.put("uid", obtenerAtributo(context, "uid"));
-						datosUsuario.put("mail", obtenerAtributo(context, "mail"));
+						datosUsuario.put("cn", obtenerAtributo(context, "cn")); // Nombres completos
+						datosUsuario.put("facsimileTelephoneNumber", obtenerAtributo(context, "facsimileTelephoneNumber")); // Numero de cedula
+						datosUsuario.put("userPrincipalName", obtenerAtributo(context, "userPrincipalName")); // Correo institucional
+						datosUsuario.put("sAMAccountName", obtenerAtributo(context, "sAMAccountName")); // Usuario (correo @iess.gob.ec)
+						datosUsuario.put("physicalDeliveryOfficeName", obtenerAtributo(context, "physicalDeliveryOfficeName")); // Ubicacion fisica
+						datosUsuario.put("department", obtenerAtributo(context, "department")); // Departamento
+						datosUsuario.put("title", obtenerAtributo(context, "title")); // Cargo
 
 						return datosUsuario;
 					});
@@ -76,23 +79,26 @@ public class LdapServicio {
 	}
 
 	/**
-	 * Obtiene la informacion relaacionada a un correo dentro de LDAP.
+	 * Obtiene la informacion relacionada a un correo dentro de LDAP.
 	 *
 	 * @param correo Correo buscado.
 	 * @return JSON con la información del correo buscado.
 	 */
 	public Map<String, Object> buscarPorCorreo(String correo) {
 		try {
-			return ldapPlantilla.searchForObject(LdapQueryBuilder.query().where("mail").is(correo),
+			return ldapPlantilla.searchForObject(LdapQueryBuilder.query().where("userPrincipalName").is(correo),
 					(ContextMapper<Map<String, Object>>) contexto -> {
 						DirContextAdapter context = (DirContextAdapter) contexto;
 
 						Map<String, Object> datosUsuario = new HashMap<>();
 						datosUsuario.put("dn", context.getDn().toString());
-						datosUsuario.put("cn", obtenerAtributo(context, "cn"));
-						datosUsuario.put("sn", obtenerAtributo(context, "sn"));
-						datosUsuario.put("uid", obtenerAtributo(context, "uid"));
-						datosUsuario.put("mail", obtenerAtributo(context, "mail"));
+						datosUsuario.put("cn", obtenerAtributo(context, "cn")); // Nombres completos
+						datosUsuario.put("facsimileTelephoneNumber", obtenerAtributo(context, "facsimileTelephoneNumber")); // Numero de cedula
+						datosUsuario.put("userPrincipalName", obtenerAtributo(context, "userPrincipalName")); // Correo institucional
+						datosUsuario.put("sAMAccountName", obtenerAtributo(context, "sAMAccountName")); // Usuario (correo @iess.gob.ec)
+						datosUsuario.put("physicalDeliveryOfficeName", obtenerAtributo(context, "physicalDeliveryOfficeName")); // Ubicacion fisica
+						datosUsuario.put("department", obtenerAtributo(context, "department")); // Departamento
+						datosUsuario.put("title", obtenerAtributo(context, "title")); // Cargo
 
 						return datosUsuario;
 					});
@@ -106,6 +112,40 @@ public class LdapServicio {
 	}
 
 	/**
+	 * Obtiene la informacion relacionada a un correo dentro de LDAP.
+	 *
+	 * @param correo Correo buscado.
+	 * @return JSON con la información del correo buscado.
+	 */
+	public Map<String, Object> buscarPorNombreCompleto(String nombreCompleto) {
+		try {
+			return ldapPlantilla.searchForObject(LdapQueryBuilder.query().where("cn").is(nombreCompleto),
+					(ContextMapper<Map<String, Object>>) contexto -> {
+						DirContextAdapter context = (DirContextAdapter) contexto;
+
+						Map<String, Object> datosUsuario = new HashMap<>();
+						datosUsuario.put("dn", context.getDn().toString());
+						datosUsuario.put("cn", obtenerAtributo(context, "cn")); // Nombres completos
+						datosUsuario.put("facsimileTelephoneNumber", obtenerAtributo(context, "facsimileTelephoneNumber")); // Numero de cedula
+						datosUsuario.put("userPrincipalName", obtenerAtributo(context, "userPrincipalName")); // Correo institucional
+						datosUsuario.put("sAMAccountName", obtenerAtributo(context, "sAMAccountName")); // Usuario (correo @iess.gob.ec)
+						datosUsuario.put("physicalDeliveryOfficeName", obtenerAtributo(context, "physicalDeliveryOfficeName")); // Ubicacion fisica
+						datosUsuario.put("department", obtenerAtributo(context, "department")); // Departamento
+						datosUsuario.put("title", obtenerAtributo(context, "title")); // Cargo
+
+						return datosUsuario;
+					});
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			Map<String, Object> error = new HashMap<>();
+			error.put("mensaje", "El usuario " + nombreCompleto + " no existe.");
+			return error;
+		}
+	}
+
+	
+	/**
 	 * Actualiza la contraseña ligada a un usuario dentro de LDAP.
 	 *
 	 * @param usuario         Usuario al que se le cambiara la contraseña.
@@ -115,14 +155,14 @@ public class LdapServicio {
 	public Map<String, String> cambiarContrasenaPorUsuario(String usuario, String nuevaContrasena) {
 		Map<String, String> respuesta = new HashMap<>();
 		try {
-			String DnUsuario = ldapPlantilla.searchForObject(LdapQueryBuilder.query().where("uid").is(usuario),
+			String DnUsuario = ldapPlantilla.searchForObject(LdapQueryBuilder.query().where("sAMAccountName").is(usuario),
 					(ContextMapper<String>) contexto -> {
 						DirContextAdapter context = (DirContextAdapter) contexto;
 						return context.getDn().toString();
 					});
 			ldapPlantilla.modifyAttributes(DnUsuario,
 					new ModificationItem[] { new ModificationItem(DirContext.REPLACE_ATTRIBUTE,
-							new BasicAttribute("userPassword", nuevaContrasena)) });
+							new BasicAttribute("unicodePwd", nuevaContrasena)) });
 
 			respuesta.put("mensaje", "Contraseña del usuario " + usuario + " ha sido actualizada.");
 			return respuesta;
@@ -143,7 +183,7 @@ public class LdapServicio {
 	public Map<String, String> cambiarContrasenaPorCorreo(String correo, String nuevaContrasena) {
 		Map<String, String> respuesta = new HashMap<>();
 		try {
-			String DnUsuario = ldapPlantilla.searchForObject(LdapQueryBuilder.query().where("mail").is(correo),
+			String DnUsuario = ldapPlantilla.searchForObject(LdapQueryBuilder.query().where("userPrincipalName").is(correo),
 					(ContextMapper<String>) contexto -> {
 						DirContextAdapter context = (DirContextAdapter) contexto;
 						return context.getDn().toString();
@@ -151,7 +191,7 @@ public class LdapServicio {
 
 			ldapPlantilla.modifyAttributes(DnUsuario,
 					new ModificationItem[] { new ModificationItem(DirContext.REPLACE_ATTRIBUTE,
-							new BasicAttribute("userPassword", nuevaContrasena)) });
+							new BasicAttribute("unicodePwd", nuevaContrasena)) });
 
 			respuesta.put("mensaje", "Contraseña ligada al correo " + correo + " ha sido actualizada.");
 
@@ -164,15 +204,45 @@ public class LdapServicio {
 	}
 
 	/**
-	 * Obtiene los datos de manera segura de un DN dentro de LDAP.
+	 * Actualiza la contraseña ligada a un correo dentro de LDAP.
 	 *
-	 * @param context  Ubicación del DN buscado.
+	 * @param correo          Correo al que se le cambiara la contraseña.
+	 * @param nuevaContraseña Nueva contraseña para actualizar.
+	 * @return JSON con el resultado de la operación.
+	 */
+	public Map<String, String> cambiarContrasenaPorNombreCompleto(String nombreCompleto, String nuevaContrasena) {
+		Map<String, String> respuesta = new HashMap<>();
+		try {
+			String DnUsuario = ldapPlantilla.searchForObject(LdapQueryBuilder.query().where("cn").is(nombreCompleto),
+					(ContextMapper<String>) contexto -> {
+						DirContextAdapter context = (DirContextAdapter) contexto;
+						return context.getDn().toString();
+					});
+
+			ldapPlantilla.modifyAttributes(DnUsuario,
+					new ModificationItem[] { new ModificationItem(DirContext.REPLACE_ATTRIBUTE,
+							new BasicAttribute("unicodePwd", nuevaContrasena)) });
+
+			respuesta.put("mensaje", "Contraseña ligada a " + nombreCompleto + " ha sido actualizada.");
+
+			return respuesta;
+		} catch (Exception e) {
+			e.printStackTrace();
+			respuesta.put("mensaje", "Error al intentar actualizar contraseña:" + e.getMessage());
+			return respuesta;
+		}
+	}
+	
+	/**
+	 * Obtiene los datos de manera segura
+	 *
+	 * @param context  Ubicación del atributo buscado.
 	 * @param atributo Atributo a obtener dato.
 	 * @return Información del atributo buscado.
 	 */
-	private String obtenerAtributo(DirContextAdapter context, String atributo) {
-		String valorDelAtributo = context.getStringAttribute(atributo);
-		return valorDelAtributo != null ? valorDelAtributo : "Dato no disponible";
-	}
+    public String obtenerAtributo(DirContextAdapter context, String atributo) {
+        String valor = context.getStringAttribute(atributo);
+        return (valor != null && !valor.isEmpty()) ? valor : "atributo no encontrado";
+    }
 
 }
