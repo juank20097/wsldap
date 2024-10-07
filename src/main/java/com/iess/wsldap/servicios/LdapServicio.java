@@ -5,214 +5,125 @@
 package com.iess.wsldap.servicios;
 
 /**
- * Clase que define los servicios REST para LDAP
- * 
+ * Clase que define los servicios para Azure Active Directory.
  * 
  * @author  jestevez
  * @version $Revision: 1.0.0 $ 
  *          <p>
- *          [$Author: jestevez $, Date: 25 sep 2024 $]
+ *          [$Author: jestevez $, Date: 25 sep 2024 $]a
  *          </p>
  */
 
+import com.azure.identity.ClientSecretCredential;
+import com.azure.identity.ClientSecretCredentialBuilder;
+import com.microsoft.graph.authentication.TokenCredentialAuthProvider;
+import com.microsoft.graph.models.User;
+import com.microsoft.graph.requests.GraphServiceClient;
+import io.swagger.v3.oas.annotations.Hidden;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import java.util.Collections;
 import java.util.HashMap;
-
 import java.util.Map;
 
-import javax.naming.directory.BasicAttribute;
-
-import javax.naming.directory.DirContext;
-import javax.naming.directory.ModificationItem;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.ldap.core.ContextMapper;
-import org.springframework.ldap.core.DirContextAdapter;
-import org.springframework.ldap.core.LdapTemplate;
-import org.springframework.ldap.query.LdapQueryBuilder;
-import org.springframework.stereotype.Service;
-
-import io.swagger.v3.oas.annotations.Hidden;
-
-
-
 /**
- * Servicio para los usuarios dentro del LDAP.
+ * Servicio para la autenticación y obtención de información de usuarios desde Azure AD.
  */
 @Hidden
 @Service
 public class LdapServicio {
 
-	@Autowired
-	private LdapTemplate ldapPlantilla;
+    // Variables cargadas desde application.properties
+    @Value("${azure.tenant-id}")
+    private String tenantId;
 
-	/**
-	 * Obtiene la informacion relacionada a un usuario dentro de LDAP.
-	 *
-	 * @param usuario Usuario buscado.
-	 * @return JSON con la información del usuario buscado.
-	 */
-	public Map<String, Object> buscarPorUsuario(String usuario) {
-		try {
-			return ldapPlantilla.searchForObject(LdapQueryBuilder.query().where("sAMAccountName").is(usuario),
-					(ContextMapper<Map<String, Object>>) contexto -> {
-						DirContextAdapter context = (DirContextAdapter) contexto;
+    @Value("${azure.cliente-id}")
+    private String clienteId;
 
-						Map<String, Object> datosUsuario = new HashMap<>();
-						datosUsuario.put("dn", context.getDn().toString());
-						datosUsuario.put("cn", obtenerAtributo(context, "cn")); // Nombres completos
-						datosUsuario.put("facsimileTelephoneNumber", obtenerAtributo(context, "facsimileTelephoneNumber")); // Numero de cedula
-						datosUsuario.put("userPrincipalName", obtenerAtributo(context, "userPrincipalName")); // Correo institucional
-						datosUsuario.put("sAMAccountName", obtenerAtributo(context, "sAMAccountName")); // Usuario (correo @iess.gob.ec)
-						datosUsuario.put("physicalDeliveryOfficeName", obtenerAtributo(context, "physicalDeliveryOfficeName")); // Ubicacion fisica
-						datosUsuario.put("department", obtenerAtributo(context, "department")); // Departamento
-						datosUsuario.put("title", obtenerAtributo(context, "title")); // Cargo
+    @Value("${azure.cliente-secreto}")
+    private String clienteSecreto;
 
-						return datosUsuario;
-					});
+    /**
+     * Crea y retorna el cliente de Microsoft Graph autenticado.
+     *
+     * @return El cliente GraphServiceClient.
+     */
+    public GraphServiceClient<?> obtenerClienteGraph() {
+        // Crear las credenciales del cliente utilizando los valores de configuración
+        ClientSecretCredential credencialClienteSecreto = new ClientSecretCredentialBuilder()
+            .clientId(clienteId)
+            .clientSecret(clienteSecreto)
+            .tenantId(tenantId)
+            .build();
 
-		} catch (Exception e) {
-			e.printStackTrace();
-			Map<String, Object> error = new HashMap<>();
-			error.put("mensaje", "El usuario " + usuario + " no existe.");
-			return error;
-		}
-	}
+        // Crear el proveedor de autenticación usando las credenciales del cliente
+        TokenCredentialAuthProvider authProvider = new TokenCredentialAuthProvider(
+            Collections.singletonList("https://graph.microsoft.com/.default"), 
+            credencialClienteSecreto
+        );
 
-	/**
-	 * Obtiene la informacion relacionada a un correo dentro de LDAP.
-	 *
-	 * @param correo Correo buscado.
-	 * @return JSON con la información del correo buscado.
-	 */
-	public Map<String, Object> buscarPorCorreo(String correo) {
-		try {
-			return ldapPlantilla.searchForObject(LdapQueryBuilder.query().where("userPrincipalName").is(correo),
-					(ContextMapper<Map<String, Object>>) contexto -> {
-						DirContextAdapter context = (DirContextAdapter) contexto;
+        // Crear el cliente Graph con el proveedor de autenticación
+        return GraphServiceClient
+            .builder()
+            .authenticationProvider(authProvider)
+            .buildClient();
+    }
 
-						Map<String, Object> datosUsuario = new HashMap<>();
-						datosUsuario.put("dn", context.getDn().toString());
-						datosUsuario.put("cn", obtenerAtributo(context, "cn")); // Nombres completos
-						datosUsuario.put("facsimileTelephoneNumber", obtenerAtributo(context, "facsimileTelephoneNumber")); // Numero de cedula
-						datosUsuario.put("userPrincipalName", obtenerAtributo(context, "userPrincipalName")); // Correo institucional
-						datosUsuario.put("sAMAccountName", obtenerAtributo(context, "sAMAccountName")); // Usuario (correo @iess.gob.ec)
-						datosUsuario.put("physicalDeliveryOfficeName", obtenerAtributo(context, "physicalDeliveryOfficeName")); // Ubicacion fisica
-						datosUsuario.put("department", obtenerAtributo(context, "department")); // Departamento
-						datosUsuario.put("title", obtenerAtributo(context, "title")); // Cargo
+    /**
+     * Busca un usuario por su sAMAccountName y retorna los atributos requeridos en formato JSON.
+     *
+     * @param sAMAccountName El nombre de cuenta SAM (usuario).
+     * @return Un mapa con los atributos del usuario en formato JSON.
+     * @throws IllegalArgumentException Si el sAMAccountName es nulo o vacío.
+     * @throws UserNotFoundException Si no se encuentra el usuario.
+     */
+    public Map<String, String> obtenerUsuarioPorSAMAccountName(String sAMAccountName) {
+        // Validar que sAMAccountName no sea nulo ni vacío
+        if (sAMAccountName == null || sAMAccountName.trim().isEmpty()) {
+            throw new IllegalArgumentException("El sAMAccountName no puede ser nulo ni vacío.");
+        }
 
-						return datosUsuario;
-					});
+        try {
+            // Crear el cliente de Microsoft Graph
+            GraphServiceClient<?> cliente = obtenerClienteGraph();
 
-		} catch (Exception e) {
-			e.printStackTrace();
-			Map<String, Object> error = new HashMap<>();
-			error.put("mensaje", "El usuario con el correo " + correo + " no existe.");
-			return error;
-		}
-	}
+            // Realizar la búsqueda del usuario por sAMAccountName
+            User usuario = cliente
+                .users()
+                .buildRequest()
+                .filter("onPremisesSamAccountName eq '" + sAMAccountName + "'")
+                .select("displayName,onPremisesSamAccountName,userPrincipalName,department,jobTitle")
+                .get()
+                .getCurrentPage()
+                .get(0);
 
-	/**
-	 * Obtiene la informacion relacionada a un correo dentro de LDAP.
-	 *
-	 * @param correo Correo buscado.
-	 * @return JSON con la información del correo buscado.
-	 */
-	public Map<String, Object> buscarPorNombreCompleto(String nombreCompleto) {
-		try {
-			return ldapPlantilla.searchForObject(LdapQueryBuilder.query().where("cn").is(nombreCompleto),
-					(ContextMapper<Map<String, Object>>) contexto -> {
-						DirContextAdapter context = (DirContextAdapter) contexto;
+            // Crear un mapa para los atributos del usuario
+            Map<String, String> atributosUsuario = new HashMap<>();
+            atributosUsuario.put("NombresCompletos", usuario.displayName);
+            atributosUsuario.put("NumeroCedula", "N/A"); // No disponible en Microsoft Graph
+            atributosUsuario.put("CorreoInstitucional", usuario.userPrincipalName);
+            atributosUsuario.put("Usuario", usuario.onPremisesSamAccountName); // sAMAccountName
+            atributosUsuario.put("UbicacionFisica", "N/A"); // No disponible directamente
+            atributosUsuario.put("Departamento", usuario.department);
+            atributosUsuario.put("Cargo", usuario.jobTitle);
 
-						Map<String, Object> datosUsuario = new HashMap<>();
-						datosUsuario.put("dn", context.getDn().toString());
-						datosUsuario.put("cn", obtenerAtributo(context, "cn")); // Nombres completos
-						datosUsuario.put("facsimileTelephoneNumber", obtenerAtributo(context, "facsimileTelephoneNumber")); // Numero de cedula
-						datosUsuario.put("userPrincipalName", obtenerAtributo(context, "userPrincipalName")); // Correo institucional
-						datosUsuario.put("sAMAccountName", obtenerAtributo(context, "sAMAccountName")); // Usuario (correo @iess.gob.ec)
-						datosUsuario.put("physicalDeliveryOfficeName", obtenerAtributo(context, "physicalDeliveryOfficeName")); // Ubicacion fisica
-						datosUsuario.put("department", obtenerAtributo(context, "department")); // Departamento
-						datosUsuario.put("title", obtenerAtributo(context, "title")); // Cargo
+            return atributosUsuario;
+        } catch (IndexOutOfBoundsException e) {
+            throw new UserNotFoundException("Usuario no encontrado: " + sAMAccountName);
+        } catch (Exception e) {
+            throw new RuntimeException("Error al obtener el usuario: " + e.getMessage(), e);
+        }
+    }
+    
+    public class UserNotFoundException extends RuntimeException {
+        /**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
 
-						return datosUsuario;
-					});
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			Map<String, Object> error = new HashMap<>();
-			error.put("mensaje", "El usuario " + nombreCompleto + " no existe.");
-			return error;
-		}
-	}
-
-	
-	/**
-	 * Actualiza la contraseña ligada a un usuario dentro de LDAP.
-	 *
-	 * @param usuario         Usuario al que se le cambiara la contraseña.
-	 * @param nuevaContraseña Nueva contraseña para actualizar.
-	 * @return JSON con el resultado de la operación.
-	 */
-	public Map<String, String> cambiarContrasenaPorUsuario(String usuario, String nuevaContrasena) {
-		Map<String, String> respuesta = new HashMap<>();
-		try {
-			String DnUsuario = ldapPlantilla.searchForObject(LdapQueryBuilder.query().where("sAMAccountName").is(usuario),
-					(ContextMapper<String>) contexto -> {
-						DirContextAdapter context = (DirContextAdapter) contexto;
-						return context.getDn().toString();
-					});
-			ldapPlantilla.modifyAttributes(DnUsuario,
-					new ModificationItem[] { new ModificationItem(DirContext.REPLACE_ATTRIBUTE,
-							new BasicAttribute("unicodePwd", nuevaContrasena)) });
-
-			respuesta.put("mensaje", "Contraseña del usuario " + usuario + " ha sido actualizada.");
-			return respuesta;
-		} catch (Exception e) {
-			e.printStackTrace();
-			respuesta.put("mensaje", "Error al intentar actualizar contraseña:" + e.getMessage());
-			return respuesta;
-		}
-	}
-
-	/**
-	 * Actualiza la contraseña ligada a un correo dentro de LDAP.
-	 *
-	 * @param correo          Correo al que se le cambiara la contraseña.
-	 * @param nuevaContraseña Nueva contraseña para actualizar.
-	 * @return JSON con el resultado de la operación.
-	 */
-	public Map<String, String> cambiarContrasenaPorCorreo(String correo, String nuevaContrasena) {
-		Map<String, String> respuesta = new HashMap<>();
-		try {
-			String DnUsuario = ldapPlantilla.searchForObject(LdapQueryBuilder.query().where("userPrincipalName").is(correo),
-					(ContextMapper<String>) contexto -> {
-						DirContextAdapter context = (DirContextAdapter) contexto;
-						return context.getDn().toString();
-					});
-
-			ldapPlantilla.modifyAttributes(DnUsuario,
-					new ModificationItem[] { new ModificationItem(DirContext.REPLACE_ATTRIBUTE,
-							new BasicAttribute("unicodePwd", nuevaContrasena)) });
-
-			respuesta.put("mensaje", "Contraseña ligada al correo " + correo + " ha sido actualizada.");
-
-			return respuesta;
-		} catch (Exception e) {
-			e.printStackTrace();
-			respuesta.put("mensaje", "Error al intentar actualizar contraseña:" + e.getMessage());
-			return respuesta;
-		}
-	}
-	
-	/**
-	 * Obtiene los datos de manera segura
-	 *
-	 * @param context  Ubicación del atributo buscado.
-	 * @param atributo Atributo a obtener dato.
-	 * @return Información del atributo buscado.
-	 */
-    public String obtenerAtributo(DirContextAdapter context, String atributo) {
-        String valor = context.getStringAttribute(atributo);
-        return (valor != null && !valor.isEmpty()) ? valor : "atributo no encontrado";
+		public UserNotFoundException(String message) {
+            super(message);
+        }
     }
 
 }

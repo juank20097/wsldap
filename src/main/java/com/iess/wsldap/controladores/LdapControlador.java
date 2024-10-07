@@ -4,9 +4,24 @@
  */
 package com.iess.wsldap.controladores;
 
+import com.iess.wsldap.servicios.LdapServicio;
+import com.iess.wsldap.servicios.LdapServicio.UserNotFoundException;
+import com.microsoft.graph.models.User;
+import com.microsoft.graph.requests.GraphServiceClient;
+import com.microsoft.graph.requests.UserCollectionPage;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 /**
- * Clase que define los servicios de uso en los web services
- * 
+ * Controlador para gestionar las operaciones relacionadas con los servicios LDAP.
  * 
  * @author  jestevez
  * @version $Revision: 1.0.0 $ 
@@ -14,111 +29,70 @@ package com.iess.wsldap.controladores;
  *          [$Author: jestevez $, Date: 25 sep 2024 $]
  *          </p>
  */
-
-import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.iess.wsldap.servicios.LdapServicio;
-
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
-
-/**
- * Controlador para gestionar las operaciones relacionadas con los servicios LDAP.
- */
-
-@Tag(name = "LDAP")
+@Tag(name = "Azure AD")
 @RestController
 @RequestMapping("/ldap")
 public class LdapControlador {
 
-	@Autowired
-	private LdapServicio ldapServicio;
+    // Inyección de dependencias del servicio LDAP
+    @Autowired
+    private LdapServicio ldapServicio;
 
-	/**
-	 * Devuelve información relacionada a un usuario dentro de LDAP.
-	 *
-	 * @return Información sobre el usuario buscado.
-	 */
-	@Operation(description = "Este servicio nos devuelve la información relacionada al usuario buscado", parameters = {
-			@Parameter(name = "usuario", example = "jane", required = true) }, responses = {
-					@ApiResponse(responseCode = "200", description = "Muestra la información en formato JSON", content = @Content(mediaType = "application/json", schema = @Schema(example = "{ \"dn\": \"{distinguishedName}\", \"cn\": \"Pruebas PrestadoresExternos\", \"facsimileTelephoneNumber\": \"Dato no disponible\", \"userPrincipalName\": \"Pruebas.pexternos@iess.gob.ec\", \"sAMAccountName\": \"pruebas.pexternos\" , \"physicalDeliveryOfficeName\": \"Dato no obtenido\" , \"department\": \"DNTI\" , \"tittle\": \"Dato no obtenido\" }"))),
-					@ApiResponse(responseCode = "500", description = "Error de conexión", content = @Content()) })
-	@GetMapping("/usuario/{usuario}")
-	public Map<String, Object> buscarPorUsuario(@PathVariable("usuario") String usuario) {
-		return ldapServicio.buscarPorUsuario(usuario);
-	}
+    /**
+     * Endpoint para obtener información de un usuario desde Azure AD utilizando el sAMAccountName.
+     *
+     * @param sAMAccountName El nombre de cuenta SAM del usuario.
+     * @return La información del usuario en formato JSON o un mensaje de error.
+     */
+    @Operation(summary = "Obtener información de usuario por sAMAccountName")
+    @GetMapping("/usuario/{sAMAccountName}")
+    public ResponseEntity<?> obtenerUsuario(@PathVariable("sAMAccountName") String sAMAccountName) {
+        try {
+            // Obtener la información del usuario desde el servicio
+            Map<String, String> usuario = ldapServicio.obtenerUsuarioPorSAMAccountName(sAMAccountName);
+            return new ResponseEntity<>(usuario, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            // Manejar parámetros inválidos
+            return new ResponseEntity<>("El sAMAccountName no puede ser nulo ni vacío.", HttpStatus.BAD_REQUEST);
+        } catch (UserNotFoundException e) {
+            // Manejar el caso en que el usuario no fue encontrado
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            // Manejar errores generales
+            return new ResponseEntity<>("Ocurrió un error al obtener el usuario: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
-	/**
-	 * Devuelve información relacionada a un correo dentro de LDAP.
-	 *
-	 * @return Información sobre el correo buscado.
-	 */
-	@Operation(description = "Este servicio nos devulve la informacion relacionada al correo buscado", parameters = {
-			@Parameter(name = "correo", example = "jane.smith@example.com", required = true) }, responses = {
-					@ApiResponse(responseCode = "200", description = "Muestra la informacion en formato JSON", content = @Content(mediaType = "application/json", schema = @Schema(example = "{ \"dn\": \"{distinguishedName}\", \"cn\": \"Pruebas PrestadoresExternos\", \"facsimileTelephoneNumber\": \"Dato no disponible\", \"userPrincipalName\": \"Pruebas.pexternos@iess.gob.ec\", \"sAMAccountName\": \"pruebas.pexternos\" , \"physicalDeliveryOfficeName\": \"Dato no obtenido\" , \"department\": \"DNTI\" , \"tittle\": \"Dato no obtenido\" }"))),
-					@ApiResponse(responseCode = "500", description = "Error de conexión", content = @Content()) })
-	@GetMapping("/email/{correo}")
-	public Map<String, Object> buscarPorCorreo(@PathVariable("correo") String correo) {
-		return ldapServicio.buscarPorCorreo(correo);
-	}
+    /**
+     * Endpoint de prueba para verificar el estado del servicio LDAP.
+     *
+     * @return Un mensaje de confirmación si el servicio está operativo.
+     */
+    @Operation(summary = "Probar la conexión con Azure AD")
+    @GetMapping("/ping")
+    public ResponseEntity<String> probarServicio() {
+        try {
+            // Intentar obtener una lista de usuarios para verificar la conexión
+            GraphServiceClient<?> cliente = ldapServicio.obtenerClienteGraph();
 
-	/**
-	 * Devuelve información relacionada a un nombre completo dentro de LDAP.
-	 *
-	 * @return Información sobre el nombre completo buscado.
-	 */
-	@Operation(description = "Este servicio devuelve la informacion realacionada al nombre proporcionado", requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "JSON el nombre completo", required = true, content = @Content(mediaType = "application/json", schema = @Schema(example = "{\"nombreCompleto\": \"Pruebas PrestadoresExternos\"}"))), responses = {
-			@ApiResponse(responseCode = "200", description = "Muestra la informacion en formato JSON", content = @Content(mediaType = "application/json", schema = @Schema(example = "{ \"dn\": \"{distinguishedName}\", \"cn\": \"Pruebas PrestadoresExternos\", \"facsimileTelephoneNumber\": \"Dato no disponible\", \"userPrincipalName\": \"Pruebas.pexternos@iess.gob.ec\", \"sAMAccountName\": \"pruebas.pexternos\" , \"physicalDeliveryOfficeName\": \"Dato no obtenido\" , \"department\": \"DNTI\" , \"tittle\": \"Dato no obtenido\" }"))),
-			@ApiResponse(responseCode = "500", description = "Error de conexión", content = @Content()) })
-	@PostMapping("/nombreCompleto")
-	public Map<String, Object> buscarPorNombreCompleto(@RequestBody Map<String, String> datosSolicitud) {
-		String nombreCompleto = datosSolicitud.get("nombreCompleto");
-		return ldapServicio.buscarPorNombreCompleto(nombreCompleto);
-	}
+            // Obtener una lista de usuarios (limitamos a 1 para eficiencia)
+            UserCollectionPage usuarios = cliente.users()
+                .buildRequest()
+                .top(1) // Limitar a 1 usuario
+                .get();
 
-	
-	/**
-	 * Cambia la contraseña ligada a un usuario dentro de LDAP.
-	 *
-	 * @param datosSolicitud Usuario y nueva contraseñá.
-	 * @return Un mensaje indicando el resultado de la operación.
-	 */
-	@Operation(description = "Este servicio nos permite cambiar la contraseña ligada al usuario proporcionado", requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "JSON con el usuario y la nueva contraseña", required = true, content = @Content(mediaType = "application/json", schema = @Schema(example = "{\"usuario\": \"pruebas.pexternos\", \"nuevaContrasena\": \"Password123456\"}"))), responses = {
-			@ApiResponse(responseCode = "200", description = "OK", content = @Content(mediaType = "application/json", schema = @Schema(example = "{ \"mensaje\": \"Contraseña ligada al usuario jane ha sido actualizada.\" }"))),
-			@ApiResponse(responseCode = "500", description = "Error de conexión", content = @Content()) })
-	@PostMapping("/usuario")
-	public Map<String, String> cambiarContrasenaPorUsuario(@RequestBody Map<String, String> datosSolicitud) {
-		String usuario = datosSolicitud.get("usuario");
-		String nuevaContrasena = datosSolicitud.get("nuevaContrasena");
-		return ldapServicio.cambiarContrasenaPorUsuario(usuario, nuevaContrasena);
-	}
+            // Verificar si se obtuvo algún usuario
+            if (!usuarios.getCurrentPage().isEmpty()) {
+                User usuario = usuarios.getCurrentPage().get(0);
+                return new ResponseEntity<>("Conexión exitosa con Azure AD. Usuario encontrado: " + usuario.displayName, HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>("Conexión exitosa con Azure AD, pero no se encontraron usuarios.", HttpStatus.OK);
+            }
+        } catch (Exception e) {
+            // Si ocurre algún error, la conexión no es exitosa
+            return new ResponseEntity<>("Error al conectar con Azure AD: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
-	/**
-	 * Cambia la contraseña ligada a un correo dentro de LDAP.
-	 *
-	 * @param datosSolicitud Correo y nueva contraseñá.
-	 * @return Un mensaje indicando el resultado de la operación.
-	 */
-	@Operation(description = "Este servicio nos permite cambiar la contraseña ligada al correo proporcionado", requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "JSON con el correo y la nueva contraseña", required = true, content = @Content(mediaType = "application/json", schema = @Schema(example = "{\"correo\": \"pruebas.pexternos@iess.gob.ec\", \"nuevaContrasena\": \"Password123456\"}"))), responses = {
-			@ApiResponse(responseCode = "200", description = "OK", content = @Content(mediaType = "application/json", schema = @Schema(example = "{ \"mensaje\": \"Contraseña ligada al correo jane.smith@example.com ha sido actualizada.\" }"))),
-			@ApiResponse(responseCode = "500", description = "Error de conexión", content = @Content()) })
-	@PostMapping("/email")
-	public Map<String, String> cambiarContrasenaPorCorreo(@RequestBody Map<String, String> datosSolicitud) {
-		String correo = datosSolicitud.get("correo");
-		String nuevaContrasena = datosSolicitud.get("nuevaContrasena");
-		return ldapServicio.cambiarContrasenaPorCorreo(correo, nuevaContrasena);
-	}
-	
+
 }
