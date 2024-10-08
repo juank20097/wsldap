@@ -13,8 +13,6 @@ import com.microsoft.graph.requests.UserCollectionPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +29,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "Azure AD")
 @RestController
-@RequestMapping("/ldap")
+@RequestMapping("/azure_ad")
 public class LdapControlador {
 
     // Inyección de dependencias del servicio LDAP
@@ -41,15 +39,15 @@ public class LdapControlador {
     /**
      * Endpoint para obtener información de un usuario desde Azure AD utilizando el sAMAccountName.
      *
-     * @param sAMAccountName El nombre de cuenta SAM del usuario.
+     * @param displayName El nombre de cuenta SAM del usuario.
      * @return La información del usuario en formato JSON o un mensaje de error.
      */
-    @Operation(summary = "Obtener información de usuario por sAMAccountName")
-    @GetMapping("/usuario/{sAMAccountName}")
-    public ResponseEntity<?> obtenerUsuario(@PathVariable("sAMAccountName") String sAMAccountName) {
+    @Operation(summary = "Obtener información de usuario por displayName")
+    @GetMapping("/usuario/{displayName}")
+    public ResponseEntity<?> obtenerUsuario(@PathVariable("displayName") String displayName) {
         try {
             // Obtener la información del usuario desde el servicio
-            Map<String, String> usuario = ldapServicio.obtenerUsuarioPorSAMAccountName(sAMAccountName);
+            User usuario = ldapServicio.obtenerUsuarioPorDisplayName(displayName);
             return new ResponseEntity<>(usuario, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             // Manejar parámetros inválidos
@@ -93,6 +91,25 @@ public class LdapControlador {
             return new ResponseEntity<>("Error al conectar con Azure AD: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-
+    
+    /**
+     * Endpoint para cambiar la contraseña de un usuario en Azure AD.
+     *
+     * @param userId El ID del usuario (userPrincipalName o id en Azure AD).
+     * @param nuevaContraseña La nueva contraseña para el usuario.
+     * @return Respuesta indicando el resultado de la operación.
+     */
+    @Operation(summary = "Método para cambiar la contraseña del usuario.")
+    @PostMapping("/cambiar-contrasena")
+    public ResponseEntity<String> cambiarContraseña(@RequestParam String userId,
+            @RequestParam String nuevaContraseña) {
+        try {
+            // Llamar al servicio para cambiar la contraseña
+            ldapServicio.cambiarContraseña(userId, nuevaContraseña);
+            return ResponseEntity.ok("Contraseña cambiada con éxito para el usuario con ID: " + userId);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error al cambiar la contraseña: " + e.getMessage());
+        }
+    }   
 }
+
